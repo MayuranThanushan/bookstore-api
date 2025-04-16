@@ -67,6 +67,6 @@ public class BookResource {
                     .entity(Map.of("error", "Book Not Found", "message", "Book with ID " + id + " does not exist."))
                     .build();
         }
-        return Response.noContent().build(); // 204 No Content
+        return Response.noContent().build();
     }
 }
