@@ -1,31 +1,72 @@
 package com.bookstore.resource;
 
 import com.bookstore.model.Book;
+import com.bookstore.storage.InMemoryDatabase;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Path("/books")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class BookResource {
 
-    private static Map<Integer, Book> books = new HashMap<>();
-    private static int idCounter = 1;
-
     @POST
     public Response addBook(Book book) {
-        book.setId(idCounter++);
-        books.put(book.getId(), book);
-        return Response.status(Response.Status.CREATED).entity(book).build();
+        int id = InMemoryDatabase.bookIdCounter++;
+        book.setId(id);
+
+        InMemoryDatabase.books.put(id, book);
+
+        return Response.status(Response.Status.CREATED)
+                .entity(book)
+                .build();
     }
 
     @GET
-    public Collection<Book> getAllBooks() {
-        return books.values();
+    public Response getAllBooks() {
+        Collection<Book> books = InMemoryDatabase.books.values();
+        return Response.ok(books).build();
+    }
+
+    @GET
+    @Path("/{id}")
+    public Response getBookById(@PathParam("id") int id) {
+        Book book = InMemoryDatabase.books.get(id);
+        if (book == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", "Book Not Found", "message", "Book with ID " + id + " does not exist."))
+                    .build();
+        }
+        return Response.ok(book).build();
+    }
+
+    @PUT
+    @Path("/{id}")
+    public Response updateBook(@PathParam("id") int id, Book updatedBook) {
+        Book existingBook = InMemoryDatabase.books.get(id);
+        if (existingBook == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", "Book Not Found", "message", "Book with ID " + id + " does not exist."))
+                    .build();
+        }
+
+        updatedBook.setId(id);
+        InMemoryDatabase.books.put(id, updatedBook);
+        return Response.ok(updatedBook).build();
+    }
+
+    @DELETE
+    @Path("/{id}")
+    public Response deleteBook(@PathParam("id") int id) {
+        Book removed = InMemoryDatabase.books.remove(id);
+        if (removed == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", "Book Not Found", "message", "Book with ID " + id + " does not exist."))
+                    .build();
+        }
+        return Response.noContent().build(); // 204 No Content
     }
 }
