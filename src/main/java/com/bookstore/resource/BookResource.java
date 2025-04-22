@@ -1,5 +1,6 @@
 package com.bookstore.resource;
 
+import com.bookstore.exception.BookNotFoundException;
 import com.bookstore.model.Book;
 import com.bookstore.storage.InMemoryDatabase;
 
@@ -17,9 +18,7 @@ public class BookResource {
     public Response addBook(Book book) {
         int id = InMemoryDatabase.bookIdCounter++;
         book.setId(id);
-
         InMemoryDatabase.books.put(id, book);
-
         return Response.status(Response.Status.CREATED)
                 .entity(book)
                 .build();
@@ -36,9 +35,7 @@ public class BookResource {
     public Response getBookById(@PathParam("id") int id) {
         Book book = InMemoryDatabase.books.get(id);
         if (book == null) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity(Map.of("error", "Book Not Found", "message", "Book with ID " + id + " does not exist."))
-                    .build();
+            throw new BookNotFoundException("Book with ID " + id + " does not exist.");
         }
         return Response.ok(book).build();
     }
@@ -46,13 +43,10 @@ public class BookResource {
     @PUT
     @Path("/{id}")
     public Response updateBook(@PathParam("id") int id, Book updatedBook) {
-        Book existingBook = InMemoryDatabase.books.get(id);
-        if (existingBook == null) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity(Map.of("error", "Book Not Found", "message", "Book with ID " + id + " does not exist."))
-                    .build();
+        Book existing = InMemoryDatabase.books.get(id);
+        if (existing == null) {
+            throw new BookNotFoundException("Book with ID " + id + " does not exist.");
         }
-
         updatedBook.setId(id);
         InMemoryDatabase.books.put(id, updatedBook);
         return Response.ok(updatedBook).build();
@@ -63,9 +57,7 @@ public class BookResource {
     public Response deleteBook(@PathParam("id") int id) {
         Book removed = InMemoryDatabase.books.remove(id);
         if (removed == null) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity(Map.of("error", "Book Not Found", "message", "Book with ID " + id + " does not exist."))
-                    .build();
+            throw new BookNotFoundException("Book with ID " + id + " does not exist.");
         }
         return Response.noContent().build();
     }
