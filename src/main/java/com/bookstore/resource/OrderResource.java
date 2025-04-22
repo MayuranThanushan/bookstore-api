@@ -1,9 +1,12 @@
 package com.bookstore.resource;
 
+import com.bookstore.exception.InvalidInputException;
+import com.bookstore.exception.OutOfStockException;
 import com.bookstore.model.Book;
 import com.bookstore.model.CartItem;
 import com.bookstore.model.Order;
 import com.bookstore.storage.InMemoryDatabase;
+import com.bookstore.utils.EntityUtils;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -17,27 +20,18 @@ public class OrderResource {
 
     @POST
     public Response placeOrder(@PathParam("customerId") int customerId) {
-        if (!InMemoryDatabase.customers.containsKey(customerId)) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity(Map.of("error", "Customer Not Found")).build();
-        }
+        EntityUtils.findCustomerOrThrow(customerId);
+        List<CartItem> cart = EntityUtils.findCartOrThrow(customerId);
 
-        List<CartItem> cart = InMemoryDatabase.carts.get(customerId);
-        if (cart == null || cart.isEmpty()) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(Map.of("error", "Cart is empty")).build();
+        if (cart.isEmpty()) {
+            throw new InvalidInputException("Cart is empty.");
         }
 
         double total = 0.0;
         for (CartItem item : cart) {
-            Book book = InMemoryDatabase.books.get(item.getBookId());
-            if (book == null) {
-                return Response.status(Response.Status.NOT_FOUND)
-                        .entity(Map.of("error", "Book Not Found")).build();
-            }
+            Book book = EntityUtils.findBookOrThrow(item.getBookId());
             if (book.getStock() < item.getQuantity()) {
-                return Response.status(Response.Status.BAD_REQUEST)
-                        .entity(Map.of("error", "Out of Stock", "bookId", book.getId())).build();
+                throw new OutOfStockException("Book with ID " + book.getId() + " is out of stock.");
             }
             total += book.getPrice() * item.getQuantity();
         }
@@ -52,18 +46,14 @@ public class OrderResource {
         Order order = new Order(orderId, customerId, new ArrayList<>(cart), total);
 
         InMemoryDatabase.orders.computeIfAbsent(customerId, k -> new ArrayList<>()).add(order);
-        InMemoryDatabase.carts.remove(customerId);
+        InMemoryDatabase.carts.remove(customerId); // Clear cart after ordering
 
         return Response.status(Response.Status.CREATED).entity(order).build();
     }
 
     @GET
     public Response getAllOrders(@PathParam("customerId") int customerId) {
-        if (!InMemoryDatabase.customers.containsKey(customerId)) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity(Map.of("error", "Customer Not Found")).build();
-        }
-
+        EntityUtils.findCustomerOrThrow(customerId);
         List<Order> orders = InMemoryDatabase.orders.getOrDefault(customerId, new ArrayList<>());
         return Response.ok(orders).build();
     }
@@ -72,15 +62,11 @@ public class OrderResource {
     @Path("/{orderId}")
     public Response getOrderById(@PathParam("customerId") int customerId,
                                  @PathParam("orderId") int orderId) {
-        if (!InMemoryDatabase.customers.containsKey(customerId)) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity(Map.of("error", "Customer Not Found")).build();
-        }
+        EntityUtils.findCustomerOrThrow(customerId);
 
         List<Order> orders = InMemoryDatabase.orders.get(customerId);
         if (orders == null) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity(Map.of("error", "No Orders Found")).build();
+            throw new InvalidInputException("No orders found for this customer.");
         }
 
         for (Order order : orders) {
@@ -89,7 +75,6 @@ public class OrderResource {
             }
         }
 
-        return Response.status(Response.Status.NOT_FOUND)
-                .entity(Map.of("error", "Order Not Found")).build();
+        throw new InvalidInputException("Order with ID " + orderId + " not found.");
     }
 }

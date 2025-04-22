@@ -3,6 +3,7 @@ package com.bookstore.resource;
 import com.bookstore.exception.BookNotFoundException;
 import com.bookstore.model.Book;
 import com.bookstore.storage.InMemoryDatabase;
+import com.bookstore.utils.EntityUtils;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -33,20 +34,14 @@ public class BookResource {
     @GET
     @Path("/{id}")
     public Response getBookById(@PathParam("id") int id) {
-        Book book = InMemoryDatabase.books.get(id);
-        if (book == null) {
-            throw new BookNotFoundException("Book with ID " + id + " does not exist.");
-        }
+        Book book = EntityUtils.findBookOrThrow(id);
         return Response.ok(book).build();
     }
 
     @PUT
     @Path("/{id}")
     public Response updateBook(@PathParam("id") int id, Book updatedBook) {
-        Book existing = InMemoryDatabase.books.get(id);
-        if (existing == null) {
-            throw new BookNotFoundException("Book with ID " + id + " does not exist.");
-        }
+        EntityUtils.findBookOrThrow(id); // just validate existence
         updatedBook.setId(id);
         InMemoryDatabase.books.put(id, updatedBook);
         return Response.ok(updatedBook).build();
@@ -55,10 +50,8 @@ public class BookResource {
     @DELETE
     @Path("/{id}")
     public Response deleteBook(@PathParam("id") int id) {
-        Book removed = InMemoryDatabase.books.remove(id);
-        if (removed == null) {
-            throw new BookNotFoundException("Book with ID " + id + " does not exist.");
-        }
+        EntityUtils.findBookOrThrow(id);
+        InMemoryDatabase.books.remove(id);
         return Response.noContent().build();
     }
 }

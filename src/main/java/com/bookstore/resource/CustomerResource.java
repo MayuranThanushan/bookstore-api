@@ -2,6 +2,7 @@ package com.bookstore.resource;
 
 import com.bookstore.model.Customer;
 import com.bookstore.storage.InMemoryDatabase;
+import com.bookstore.utils.EntityUtils;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -31,25 +32,14 @@ public class CustomerResource {
     @GET
     @Path("/{id}")
     public Response getCustomerById(@PathParam("id") int id) {
-        Customer customer = InMemoryDatabase.customers.get(id);
-        if (customer == null) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity(Map.of("error", "Customer Not Found", "message", "Customer with ID " + id + " does not exist."))
-                    .build();
-        }
+        Customer customer = EntityUtils.findCustomerOrThrow(id);
         return Response.ok(customer).build();
     }
 
     @PUT
     @Path("/{id}")
     public Response updateCustomer(@PathParam("id") int id, Customer updatedCustomer) {
-        Customer existing = InMemoryDatabase.customers.get(id);
-        if (existing == null) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity(Map.of("error", "Customer Not Found", "message", "Customer with ID " + id + " does not exist."))
-                    .build();
-        }
-
+        EntityUtils.findCustomerOrThrow(id);
         updatedCustomer.setId(id);
         InMemoryDatabase.customers.put(id, updatedCustomer);
         return Response.ok(updatedCustomer).build();
@@ -58,12 +48,8 @@ public class CustomerResource {
     @DELETE
     @Path("/{id}")
     public Response deleteCustomer(@PathParam("id") int id) {
-        Customer removed = InMemoryDatabase.customers.remove(id);
-        if (removed == null) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity(Map.of("error", "Customer Not Found", "message", "Customer with ID " + id + " does not exist."))
-                    .build();
-        }
+        EntityUtils.findCustomerOrThrow(id);
+        InMemoryDatabase.customers.remove(id);
         return Response.noContent().build();
     }
 }

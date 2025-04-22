@@ -3,6 +3,7 @@ package com.bookstore.resource;
 import com.bookstore.model.Author;
 import com.bookstore.model.Book;
 import com.bookstore.storage.InMemoryDatabase;
+import com.bookstore.utils.EntityUtils;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -33,54 +34,34 @@ public class AuthorResource {
     @GET
     @Path("/{id}")
     public Response getAuthorById(@PathParam("id") int id) {
-        Author author = InMemoryDatabase.authors.get(id);
-        if (author == null) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity(Map.of("error", "Author Not Found", "message", "Author with ID " + id + " does not exist."))
-                    .build();
-        }
+        Author author = EntityUtils.findAuthorOrThrow(id);
         return Response.ok(author).build();
     }
 
     @PUT
     @Path("/{id}")
-    public Response updateAuthor(@PathParam("id") int id, Author updatedAuthor) {
-        Author existing = InMemoryDatabase.authors.get(id);
-        if (existing == null) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity(Map.of("error", "Author Not Found", "message", "Author with ID " + id + " does not exist."))
-                    .build();
-        }
-        updatedAuthor.setId(id);
-        InMemoryDatabase.authors.put(id, updatedAuthor);
-        return Response.ok(updatedAuthor).build();
+    public Response updateAuthor(@PathParam("id") int id, Author updated) {
+        EntityUtils.findAuthorOrThrow(id);
+        updated.setId(id);
+        InMemoryDatabase.authors.put(id, updated);
+        return Response.ok(updated).build();
     }
 
     @DELETE
     @Path("/{id}")
     public Response deleteAuthor(@PathParam("id") int id) {
-        Author removed = InMemoryDatabase.authors.remove(id);
-        if (removed == null) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity(Map.of("error", "Author Not Found", "message", "Author with ID " + id + " does not exist."))
-                    .build();
-        }
+        EntityUtils.findAuthorOrThrow(id);
+        InMemoryDatabase.authors.remove(id);
         return Response.noContent().build();
     }
 
     @GET
     @Path("/{id}/books")
     public Response getBooksByAuthor(@PathParam("id") int authorId) {
-        if (!InMemoryDatabase.authors.containsKey(authorId)) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity(Map.of("error", "Author Not Found", "message", "Author with ID " + authorId + " does not exist."))
-                    .build();
-        }
-
-        List<Book> booksByAuthor = InMemoryDatabase.books.values().stream()
+        EntityUtils.findAuthorOrThrow(authorId);
+        List<Book> books = InMemoryDatabase.books.values().stream()
                 .filter(book -> book.getAuthorId() == authorId)
-                .collect(Collectors.toList());
-
-        return Response.ok(booksByAuthor).build();
+                .toList();
+        return Response.ok(books).build();
     }
 }
