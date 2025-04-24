@@ -3,10 +3,8 @@ package com.bookstore.exception.mappers;
 import com.bookstore.exception.CartNotFoundException;
 import com.bookstore.exception.ErrorResponse;
 
-import jakarta.ws.rs.core.*;
-import jakarta.ws.rs.ext.*;
-
 import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
 @Provider
